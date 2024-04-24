@@ -39,42 +39,59 @@ function winetech_menu() {
 
 add_action('admin_menu', 'winetech_menu');
 
+// Função para salvar as configurações
 function save_settings() {
     global $wpdb;
 
-    if (isset($_POST['save-settings'])) {
-        // Obtém os valores dos campos do formulário
+    if (isset($_POST['save-temperature-settings'])) {
+        // Obtém os valores dos campos do formulário de temperatura
         $thresholdmax = sanitize_text_field($_POST['temperature-thresholdmax']);
         $thresholdmin = sanitize_text_field($_POST['temperature-thresholdmin']);
-        $recipients = isset($_POST['notification-recipients']) ? $_POST['notification-recipients'] : array();
-        $tank = isset($_POST['relational-tank']) ? $_POST['relational-tank'] : array();
 
-        // Serializa os destinatários para salvar no banco de dados
-        $recipients = serialize($recipients);
-        $tank = serialize($tank);
-
-        // Verifica se já existem configurações na tabela
-        $existing_settings = $wpdb->get_row("SELECT * FROM {$wpdb->prefix}winetech_config");
-
-        if ($existing_settings) {
-            // Atualiza as configurações se já existirem
+        // Atualiza ou insere as configurações de temperatura no banco de dados
+        $settings = $wpdb->get_row("SELECT * FROM {$wpdb->prefix}winetech_config");
+        if ($settings) {
             $wpdb->update(
                 "{$wpdb->prefix}winetech_config",
                 array(
                     'thresholdmax' => $thresholdmax,
                     'thresholdmin' => $thresholdmin,
-                    'recipients' => $recipients,
-                    'tank' => $tank,
                 ),
-                array('id' => $existing_settings->id)
+                array('id' => $settings->id)
             );
         } else {
-            // Insere novas configurações se não existirem
             $wpdb->insert(
                 "{$wpdb->prefix}winetech_config",
                 array(
                     'thresholdmax' => $thresholdmax,
                     'thresholdmin' => $thresholdmin,
+                )
+            );
+        }
+    } elseif (isset($_POST['save-notification-settings'])) {
+        // Obtém os valores dos campos do formulário de destinatários de notificação e tanques
+        $recipients = isset($_POST['notification-recipients']) ? $_POST['notification-recipients'] : array();
+        $tank = isset($_POST['relational-tank']) ? $_POST['relational-tank'] : array();
+
+        // Serializa os destinatários e tanques para salvar no banco de dados
+        $recipients = serialize($recipients);
+        $tank = serialize($tank);
+
+        // Atualiza ou insere as configurações de destinatários de notificação e tanques no banco de dados
+        $settings = $wpdb->get_row("SELECT * FROM {$wpdb->prefix}winetech_config");
+        if ($settings) {
+            $wpdb->update(
+                "{$wpdb->prefix}winetech_config",
+                array(
+                    'recipients' => $recipients,
+                    'tank' => $tank,
+                ),
+                array('id' => $settings->id)
+            );
+        } else {
+            $wpdb->insert(
+                "{$wpdb->prefix}winetech_config",
+                array(
                     'recipients' => $recipients,
                     'tank' => $tank,
                 )
@@ -82,7 +99,6 @@ function save_settings() {
         }
     }
 }
-
 add_action('admin_init', 'save_settings');
 
 // Adiciona a biblioteca Chart.js
